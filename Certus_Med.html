@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Médico — Círculo 2025–2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2d3a;
+    --accent: #4f8ef7;
+    --accent2: #6ee7b7;
+    --accent3: #f472b6;
+    --accent4: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --red: #f87171;
+    --green: #4ade80;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 28px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header p { color: var(--muted); font-size: 12px; }
+  .badge { background: rgba(79,142,247,0.15); color: var(--accent); border: 1px solid rgba(79,142,247,0.3); border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+
+  .container { padding: 20px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* Month tabs */
+  .tabs { display: flex; gap: 6px; }
+  .tab { padding: 6px 16px; border-radius: 6px; background: var(--card); border: 1px solid var(--border); cursor: pointer; color: var(--muted); font-size: 12px; transition: all 0.15s; }
+  .tab:hover { color: var(--text); border-color: var(--accent); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+
+  /* KPI Cards */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .kpi .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .kpi .value { font-size: 24px; font-weight: 700; }
+  .kpi .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .kpi .delta { font-size: 11px; margin-top: 6px; }
+  .delta.up { color: var(--green); }
+  .delta.down { color: var(--red); }
+
+  /* Charts grid */
+  .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .charts-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .chart-card h3 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .chart-card .subtitle { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+  .chart-wrap { position: relative; }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .data-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .rank { color: var(--muted); font-size: 11px; }
+  .bar-mini { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; margin-left: 6px; }
+
+  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+  .trend-up::before { content: '▲ '; }
+  .trend-down::before { content: '▼ '; }
+
+  /* YoY section */
+  #yoySection { display: none; }
+  .yoy-kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .yoy-kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; text-align: center; }
+  .yoy-kpi .month-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .yoy-kpi .yoy-pct { font-size: 20px; font-weight: 700; }
+  .yoy-kpi .yoy-pct.up { color: #4ade80; }
+  .yoy-kpi .yoy-pct.down { color: #f87171; }
+  .yoy-kpi .yoy-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .ipc-note { font-size: 10px; color: var(--muted); padding: 8px 14px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid #fbbf24; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Dashboard Médico · Círculo 2025–2026</h1>
+    <p>Liquidaciones Enero 2025 – Mayo 2026 · Actualizado al 23/06/2026</p>
+  </div>
+  <span class="badge">17 meses</span>
+</header>
+
+<div class="container">
+
+  <!-- Year / Mode selector -->
+  <div>
+    <p class="section-label" style="margin-bottom:10px">Vista</p>
+    <div class="tabs" id="viewTabs">
+      <div class="tab active" data-view="2026">2026</div>
+      <div class="tab" data-view="2025">2025</div>
+      <div class="tab" data-view="yoy" style="background:rgba(251,191,36,0.1);border-color:#fbbf24;color:#fbbf24">YoY 2025 vs 2026</div>
+    </div>
+  </div>
+
+  <!-- Month selector -->
+  <div>
+    <p class="section-label" style="margin-bottom:10px">Filtrar mes</p>
+    <div class="tabs" id="monthTabs">
+      <div class="tab" data-month="0">Todos</div>
+      <div class="tab" data-month="1">Enero</div>
+      <div class="tab" data-month="2">Febrero</div>
+      <div class="tab" data-month="3">Marzo</div>
+      <div class="tab" data-month="4">Abril</div>
+      <div class="tab active" data-month="5">Mayo</div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <!-- Volume + Revenue trend -->
+  <div class="charts-2col">
+    <div class="chart-card">
+      <h3>Volumen de Estudios</h3>
+      <p class="subtitle">Cantidad total por mes</p>
+      <div class="chart-wrap"><canvas id="volChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Ingresos al Centro</h3>
+      <p class="subtitle">Obra Social + Coseguro (ARS)</p>
+      <div class="chart-wrap"><canvas id="revChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Practices + Professionals -->
+  <div class="charts-2col">
+    <div class="chart-card">
+      <h3>Prácticas más Realizadas</h3>
+      <p class="subtitle" id="practQtySubtitle">Top 8 por cantidad</p>
+      <div class="chart-wrap"><canvas id="practQtyChart" height="260"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Prácticas por Ingreso</h3>
+      <p class="subtitle" id="practRevSubtitle">Top 6 por ingreso total (ARS)</p>
+      <div class="chart-wrap"><canvas id="practRevChart" height="260"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Professionals ranking + efficiency -->
+  <div class="charts-2col">
+    <div class="chart-card">
+      <h3>Ranking de Profesionales</h3>
+      <p class="subtitle" id="profSubtitle">Por cantidad de estudios</p>
+      <table class="data-table" id="profTable"></table>
+    </div>
+    <div class="chart-card">
+      <h3>Evolución del Mix de Prácticas</h3>
+      <p class="subtitle">Participación porcentual acumulada</p>
+      <div class="chart-wrap"><canvas id="mixChart" height="260"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Revenue per study + Professional revenue -->
+  <div class="charts-2col">
+    <div class="chart-card">
+      <h3>Ingreso Promedio por Estudio</h3>
+      <p class="subtitle">Eficiencia económica (ARS / estudio)</p>
+      <div class="chart-wrap"><canvas id="effChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Honorarios por Profesional</h3>
+      <p class="subtitle" id="profRevSubtitle">Total generado (Mutual + Coseguro)</p>
+      <div class="chart-wrap"><canvas id="profRevChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- YoY Comparison Section -->
+  <div id="yoySection">
+
+    <div style="margin-bottom:4px">
+      <p class="section-label">Crecimiento Interanual Jan–May · Volumen de Estudios</p>
+    </div>
+    <div class="yoy-kpi-row" id="yoyVolKpis"></div>
+
+    <div style="margin-top:16px; margin-bottom:4px">
+      <p class="section-label">Crecimiento Interanual Jan–May · Ingresos Reales (pesos mayo 2026)</p>
+      <p class="ipc-note" style="margin-top:6px">Ajustado por IPC INDEC · Fuente: iProfesional / INDEC 2025–2026</p>
+    </div>
+    <div class="yoy-kpi-row" id="yoyRevKpis"></div>
+
+    <div class="charts-2col" style="margin-top:16px">
+      <div class="chart-card">
+        <h3>Volumen: 2025 vs 2026 (Ene–May)</h3>
+        <p class="subtitle">Cantidad de estudios por mes</p>
+        <div class="chart-wrap"><canvas id="yoyVolChart" height="220"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Ingresos Nominales: 2025 vs 2026</h3>
+        <p class="subtitle">ARS corrientes por mes</p>
+        <div class="chart-wrap"><canvas id="yoyRevNomChart" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts-2col" style="margin-top:14px">
+      <div class="chart-card">
+        <h3>Ingresos Reales: 2025 vs 2026</h3>
+        <p class="subtitle">Pesos mayo 2026 (deflactado por IPC)</p>
+        <div class="chart-wrap"><canvas id="yoyRevRealChart" height="220"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Evolución Anual 2025 (12 meses)</h3>
+        <p class="subtitle">Estudios y tendencia mensual</p>
+        <div class="chart-wrap"><canvas id="year2025Chart" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts-2col" style="margin-top:14px">
+      <div class="chart-card">
+        <h3>Prácticas: 2025 vs 2026 (Ene–May)</h3>
+        <p class="subtitle">Cantidad acumulada Jan–May por práctica</p>
+        <div class="chart-wrap"><canvas id="yoyPractChart" height="260"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Ingreso Real Promedio por Estudio</h3>
+        <p class="subtitle">Eficiencia en pesos mayo 2026</p>
+        <div class="chart-wrap"><canvas id="yoyEffChart" height="260"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+// ===================== 2025 DATA =====================
+const studies2025 = [270, 362, 393, 398, 367, 374, 433, 423, 431, 404, 369, 428];
+const revenue2025 = [6937470, 9540230, 11986891, 11172139, 10957005, 12215205, 13574883, 14271515, 16473712, 13242683, 12117140, 15052140];
+
+const practicesQty2025 = {
+  'Consulta Especialista': [158, 204, 221, 234, 214],
+  'ECG':                   [36,  52,  38,  49,  38],
+  'Eco Doppler':           [18,  28,  38,  31,  29],
+  'Ergometría Digital':    [24,  28,  45,  43,  33],
+  'VOP':                   [2,   4,   8,   1,   8],
+  'Cardioimpedancia':      [7,   9,   14,  9,   11],
+  'Mapa':                  [6,   10,  9,   9,   7],
+  'Holter':                [6,   9,   6,   7,   12],
+  'Consulta Receta':       [9,   12,  7,   13,  11],
+  'Eco Cuello':            [4,   6,   7,   2,   4],
+};
+
+// IPC INDEC mensual (fuente: iProfesional/INDEC)
+// 2025: ene-dic | 2026: ene-may (may=estimado REM)
+const ipc2025 = [2.2, 2.4, 3.7, 2.8, 1.5, 1.6, 1.9, 1.9, 2.1, 2.3, 2.5, 2.8];
+const ipc2026 = [2.9, 2.9, 3.4, 2.5, 2.3];
+
+// Build cumulative IPC index (base Jan 2025 = 100)
+function buildIpcIndex() {
+  const idx = [100];
+  for (let i = 0; i < ipc2025.length; i++) idx.push(idx[idx.length-1] * (1 + ipc2025[i]/100));
+  for (let i = 0; i < ipc2026.length; i++) idx.push(idx[idx.length-1] * (1 + ipc2026[i]/100));
+  return idx; // [0]=Jan25, [1]=Feb25, ...[12]=Jan26, [13]=Feb26, ...[17]=May26
+}
+const ipcIndex = buildIpcIndex();
+const baseMay26 = ipcIndex[17]; // May 2026
+
+// Deflation factors: to May 2026 pesos
+// 2025 months 0-11 → ipcIndex[0..11], deflate by baseMay26/ipcIndex[i]
+// 2026 months 0-4 → ipcIndex[12..16], deflate by baseMay26/ipcIndex[12+i]
+const defl2025 = ipcIndex.slice(0, 12).map(idx => baseMay26 / idx);
+const defl2026 = ipcIndex.slice(12, 17).map(idx => baseMay26 / idx);
+
+// Real revenue Jan-May in May 2026 pesos
+const revReal2025 = revenue2025.slice(0, 5).map((r, i) => Math.round(r * defl2025[i]));
+const revReal2026 = [12890258, 18778333, 22228168, 21420591, 14913831].map((r, i) => Math.round(r * defl2026[i]));
+
+// Rev per study (real) Jan-May
+const revPerStudyReal2025 = revReal2025.map((r, i) => Math.round(r / studies2025[i]));
+const revPerStudyReal2026 = revReal2026.map((r, i) => Math.round(r / [365, 474, 558, 602, 412][i]));
+
+
+// ===================== 2026 DATA =====================
+
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo'];
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May'];
+
+// Total studies per month
+const totalStudies = [365, 474, 558, 602, 412];
+
+// Total revenue (Mutual + Coseguro) per month
+const totalRevenue = [12890258, 18778333, 22228168, 21420591, 14913831];
+
+// Revenue per study
+const revPerStudy = totalRevenue.map((r, i) => Math.round(r / totalStudies[i]));
+
+// Practices: quantity by month [ene, feb, mar, abr, may]
+const practicesQty = {
+  'Consulta Especialista': [207, 267, 332, 363, 268],
+  'ECG':                   [43,  41,  50,  57,  33],
+  'Eco Doppler':           [38,  47,  49,  48,  30],
+  'Ergometría Digital':    [20,  32,  44,  49,  28],
+  'EMMAC':                 [7,   28,  22,  15,  0],
+  'VOP':                   [6,   10,  7,   12,  13],
+  'Cardioimpedancia':      [11,  12,  13,  16,  16],
+  'Mapa':                  [8,   6,   13,  13,  12],
+  'Holter':                [7,   6,   10,  8,   0],
+  'Consulta Receta':       [14,  13,  9,   10,  6],
+  'Eco Cuello':            [4,   10,  7,   8,   6],
+  'MAX PULSE':             [0,   0,   2,   3,   0],
+};
+
+// Practices: revenue (mutual+coseguro) by month
+const practicesRev = {
+  'Consulta Especialista': [5544748, 7494267, 9814641, 10014413, 7369155],
+  'Eco Doppler':           [2927541, 3902896, 3965974, 3707566, 2157548],
+  'Ergometría Digital':    [1043001, 2066708, 2828363, 3166395, 1823767],
+  'Cardioimpedancia':      [755000,  754136,  866681,  951011,  1043476],
+  'VOP':                   [485000,  528882,  350858,  567769,  984791],
+  'Mapa':                  [448000,  480298,  959099,  823973,  769510],
+  'Holter':                [340000,  581244,  796077,  642601,  0],
+  'ECG':                   [450205,  489385,  561853,  616568,  347461],
+  'EMMAC':                 [315000,  1265000, 1070000, 790000,  0],
+};
+
+// Professionals per month: [name, estudios, total_ingresos]
+const professionals = [
+  // Enero
+  [
+    ['Dr. Miranda',    132, 3464526],
+    ['Dra. Brondello', 56,  1719973],
+    ['Dra. Del Sueldo',52,  1725426],
+    ['Dra. Ribotta',   30,  1500000],
+    ['Dr. Paganini',   24,  800000],
+  ],
+  // Febrero
+  [
+    ['Dr. Miranda',    180, 6112439],
+    ['Dra. Ribotta',   65,  3454597],
+    ['Dra. Del Sueldo',58,  1728327],
+    ['Dra. Brondello', 52,  1600000],
+    ['Dr. Paganini',   25,  850000],
+  ],
+  // Marzo
+  [
+    ['Dr. Miranda',    214, 7869328],
+    ['Dra. Ribotta',   57,  3069334],
+    ['Lic. Borgiatino',35,  1225000],
+    ['Dra. Del Sueldo',45,  1500000],
+    ['Dra. Brondello', 36,  1200000],
+  ],
+  // Abril
+  [
+    ['Dr. Miranda',    228, 7411411],
+    ['Dra. Del Sueldo',86,  2339119],
+    ['Dra. Ribotta',   51,  2697876],
+    ['Dra. Brondello', 47,  1600000],
+    ['Lic. Borgiatino',30,  1050000],
+  ],
+  // Mayo
+  [
+    ['Dr. Miranda',    173, 6266222],
+    ['Dra. Brondello', 63,  2174475],
+    ['Dra. Del Sueldo',52,  1307433],
+    ['Dra. Ribotta',   28,  1043505],
+    ['Dr. Cisterna',   16,  1093311],
+  ],
+];
+
+// ===================== STATE =====================
+let selectedMonth = 5; // 1-based, 0 = todos
+
+// ===================== CHART INSTANCES =====================
+let charts = {};
+
+const PALETTE = [
+  '#4f8ef7','#6ee7b7','#f472b6','#fbbf24','#a78bfa',
+  '#fb923c','#38bdf8','#86efac','#f9a8d4','#fde68a'
+];
+
+function fmtARS(n) {
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  return '$' + Math.round(n).toLocaleString('es-AR');
+}
+
+function fmtARSfull(n) {
+  return '$' + Math.round(n).toLocaleString('es-AR');
+}
+
+function pct(a, b) {
+  if (!b) return '';
+  const d = ((a - b) / b * 100);
+  return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ===================== KPI CARDS =====================
+function renderKPIs() {
+  const row = document.getElementById('kpiRow');
+  let estudios, ingresos, topPractice, topProf;
+
+  if (selectedMonth === 0) {
+    estudios = totalStudies.reduce((a,b) => a+b, 0);
+    ingresos = totalRevenue.reduce((a,b) => a+b, 0);
+    // accumulate practices
+    let topPQty = 0, topPName = '';
+    for (const [name, arr] of Object.entries(practicesQty)) {
+      const sum = arr.reduce((a,b)=>a+b,0);
+      if (sum > topPQty) { topPQty = sum; topPName = name; }
+    }
+    topPractice = { name: topPName, val: topPQty, unit: 'estudios' };
+    // top professional overall
+    let topProfStudies = 0, topProfName = '';
+    const profMap = {};
+    professionals.forEach(month => month.forEach(([name, est]) => { profMap[name] = (profMap[name]||0)+est; }));
+    for (const [name, est] of Object.entries(profMap)) if (est > topProfStudies) { topProfStudies = est; topProfName = name; }
+    topProf = { name: topProfName, val: topProfStudies, unit: 'estudios' };
+  } else {
+    const mi = selectedMonth - 1;
+    estudios = totalStudies[mi];
+    ingresos = totalRevenue[mi];
+    let topPQty = 0, topPName = '';
+    for (const [name, arr] of Object.entries(practicesQty)) {
+      if (arr[mi] > topPQty) { topPQty = arr[mi]; topPName = name; }
+    }
+    topPractice = { name: topPName, val: topPQty, unit: 'estudios' };
+    const sortedP = [...professionals[mi]].sort((a,b) => b[1]-a[1]);
+    topProf = { name: sortedP[0][0], val: sortedP[0][1], unit: 'estudios' };
+  }
+
+  // delta vs prev month
+  const prevIdx = selectedMonth > 1 ? selectedMonth - 2 : null;
+  const deltaEst = prevIdx !== null ? pct(totalStudies[selectedMonth-1], totalStudies[prevIdx]) : null;
+  const deltaRev = prevIdx !== null ? pct(totalRevenue[selectedMonth-1], totalRevenue[prevIdx]) : null;
+
+  const cards = [
+    {
+      label: 'Total Estudios',
+      value: estudios.toLocaleString('es-AR'),
+      sub: selectedMonth > 0 ? MONTHS[selectedMonth-1] : 'Acumulado 2026',
+      delta: selectedMonth > 1 ? deltaEst : null,
+      color: '#4f8ef7'
+    },
+    {
+      label: 'Ingresos Totales',
+      value: fmtARS(ingresos),
+      sub: 'Obra Social + Coseguro',
+      delta: selectedMonth > 1 ? deltaRev : null,
+      color: '#6ee7b7'
+    },
+    {
+      label: 'Práctica Líder',
+      value: topPractice.name,
+      sub: topPractice.val + ' ' + topPractice.unit,
+      delta: null,
+      color: '#f472b6'
+    },
+    {
+      label: 'Profesional Líder',
+      value: topProf.name,
+      sub: topProf.val + ' estudios',
+      delta: null,
+      color: '#fbbf24'
+    },
+  ];
+
+  row.innerHTML = cards.map(c => `
+    <div class="kpi" style="border-left: 3px solid ${c.color}">
+      <div class="label">${c.label}</div>
+      <div class="value" style="color:${c.color};font-size:${c.value.length > 12 ? '16px':'22px'}">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+      ${c.delta ? `<div class="delta ${c.delta.startsWith('+') ? 'up':'down'}">${c.delta} vs mes anterior</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ===================== VOLUME CHART =====================
+function renderVolChart() {
+  destroyChart('vol');
+  const ctx = document.getElementById('volChart').getContext('2d');
+  const highlight = selectedMonth > 0 ? selectedMonth - 1 : -1;
+  charts['vol'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS_SHORT,
+      datasets: [{
+        data: totalStudies,
+        backgroundColor: MONTHS_SHORT.map((_, i) =>
+          highlight === -1 || i === highlight ? '#4f8ef7' : 'rgba(79,142,247,0.3)'
+        ),
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4' } },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+}
+
+// ===================== REVENUE CHART =====================
+function renderRevChart() {
+  destroyChart('rev');
+  const ctx = document.getElementById('revChart').getContext('2d');
+  const highlight = selectedMonth > 0 ? selectedMonth - 1 : -1;
+  charts['rev'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS_SHORT,
+      datasets: [{
+        data: totalRevenue,
+        backgroundColor: MONTHS_SHORT.map((_, i) =>
+          highlight === -1 || i === highlight ? '#6ee7b7' : 'rgba(110,231,183,0.3)'
+        ),
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#8892a4', callback: v => fmtARS(v) }
+        },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+}
+
+// ===================== PRACTICES QUANTITY CHART =====================
+function renderPractQtyChart() {
+  destroyChart('practQty');
+  const ctx = document.getElementById('practQtyChart').getContext('2d');
+  document.getElementById('practQtySubtitle').textContent =
+    selectedMonth > 0 ? 'Top 8 por cantidad · ' + MONTHS[selectedMonth-1] : 'Top 8 por cantidad · Acumulado';
+
+  let dataArr = [];
+  for (const [name, arr] of Object.entries(practicesQty)) {
+    const val = selectedMonth > 0 ? arr[selectedMonth-1] : arr.reduce((a,b)=>a+b,0);
+    dataArr.push({ name, val });
+  }
+  dataArr.sort((a,b) => b.val - a.val);
+  const top8 = dataArr.slice(0, 8);
+
+  charts['practQty'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top8.map(d => d.name),
+      datasets: [{
+        data: top8.map(d => d.val),
+        backgroundColor: PALETTE,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4' } },
+        y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ===================== PRACTICES REVENUE CHART =====================
+function renderPractRevChart() {
+  destroyChart('practRev');
+  const ctx = document.getElementById('practRevChart').getContext('2d');
+  document.getElementById('practRevSubtitle').textContent =
+    selectedMonth > 0 ? 'Ingreso total · ' + MONTHS[selectedMonth-1] : 'Ingreso acumulado 2026';
+
+  let dataArr = [];
+  for (const [name, arr] of Object.entries(practicesRev)) {
+    const val = selectedMonth > 0 ? arr[selectedMonth-1] : arr.reduce((a,b)=>a+b,0);
+    dataArr.push({ name, val });
+  }
+  dataArr.sort((a,b) => b.val - a.val);
+  const top6 = dataArr.slice(0, 6);
+
+  charts['practRev'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top6.map(d => d.name),
+      datasets: [{
+        data: top6.map(d => d.val),
+        backgroundColor: PALETTE,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmtARSfull(ctx.raw) } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4', callback: v => fmtARS(v) } },
+        y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ===================== PROFESSIONALS TABLE =====================
+function renderProfTable() {
+  const tbl = document.getElementById('profTable');
+  document.getElementById('profSubtitle').textContent =
+    selectedMonth > 0 ? 'Por cantidad de estudios · ' + MONTHS[selectedMonth-1] : 'Acumulado 2026';
+
+  let rows = [];
+  if (selectedMonth > 0) {
+    rows = [...professionals[selectedMonth-1]].sort((a,b) => b[1]-a[1]);
+  } else {
+    const map = {};
+    professionals.forEach(month => month.forEach(([name, est, rev]) => {
+      if (!map[name]) map[name] = [0, 0];
+      map[name][0] += est; map[name][1] += rev;
+    }));
+    rows = Object.entries(map).map(([name, [est, rev]]) => [name, est, rev]).sort((a,b)=>b[1]-a[1]);
+  }
+
+  const maxEst = rows[0][1];
+  tbl.innerHTML = `
+    <thead><tr>
+      <th>#</th><th>Profesional</th><th>Estudios</th><th>Total Ingresado</th>
+    </tr></thead>
+    <tbody>
+      ${rows.map(([name, est, rev], i) => `
+        <tr>
+          <td class="rank">${i+1}</td>
+          <td>${name}</td>
+          <td>
+            ${est}
+            <span class="bar-mini" style="width:${Math.round(est/maxEst*80)}px"></span>
+          </td>
+          <td style="color:#6ee7b7">${fmtARSfull(rev)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+}
+
+// ===================== MIX CHART (stacked %) =====================
+function renderMixChart() {
+  destroyChart('mix');
+  const ctx = document.getElementById('mixChart').getContext('2d');
+  const mainPractices = ['Consulta Especialista', 'Eco Doppler', 'ECG', 'Ergometría Digital', 'EMMAC', 'VOP', 'Otros'];
+
+  const datasets = [];
+  const otherPractices = Object.keys(practicesQty).filter(
+    n => !['Consulta Especialista','Eco Doppler','ECG','Ergometría Digital','EMMAC','VOP'].includes(n)
+  );
+
+  const practList = ['Consulta Especialista','Eco Doppler','ECG','Ergometría Digital','EMMAC','VOP'];
+  practList.forEach((pname, pi) => {
+    datasets.push({
+      label: pname,
+      data: MONTHS_SHORT.map((_, mi) => {
+        const total = totalStudies[mi];
+        const val = (practicesQty[pname] || [0,0,0,0,0])[mi];
+        return total > 0 ? Math.round(val / total * 100) : 0;
+      }),
+      backgroundColor: PALETTE[pi],
+      borderWidth: 0,
+    });
+  });
+
+  // Otros
+  datasets.push({
+    label: 'Otros',
+    data: MONTHS_SHORT.map((_, mi) => {
+      const total = totalStudies[mi];
+      let otherSum = 0;
+      otherPractices.forEach(n => otherSum += (practicesQty[n] || [0,0,0,0,0])[mi]);
+      return total > 0 ? Math.round(otherSum / total * 100) : 0;
+    }),
+    backgroundColor: '#475569',
+    borderWidth: 0,
+  });
+
+  charts['mix'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: MONTHS_SHORT, datasets },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#8892a4', font: { size: 10 }, boxWidth: 10, padding: 8 }
+        }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: '#8892a4' } },
+        y: { stacked: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4', callback: v => v + '%' } }
+      }
+    }
+  });
+}
+
+// ===================== EFFICIENCY CHART =====================
+function renderEffChart() {
+  destroyChart('eff');
+  const ctx = document.getElementById('effChart').getContext('2d');
+  charts['eff'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: MONTHS_SHORT,
+      datasets: [{
+        label: 'ARS / estudio',
+        data: revPerStudy,
+        borderColor: '#fbbf24',
+        backgroundColor: 'rgba(251,191,36,0.1)',
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#fbbf24',
+        pointRadius: 5,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4', callback: v => fmtARS(v) } },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+}
+
+// ===================== PROFESSIONAL REVENUE CHART =====================
+function renderProfRevChart() {
+  destroyChart('profRev');
+  const ctx = document.getElementById('profRevChart').getContext('2d');
+  document.getElementById('profRevSubtitle').textContent =
+    selectedMonth > 0 ? 'Ingreso total · ' + MONTHS[selectedMonth-1] : 'Acumulado 2026';
+
+  let rows = [];
+  if (selectedMonth > 0) {
+    rows = [...professionals[selectedMonth-1]].sort((a,b) => b[2]-a[2]);
+  } else {
+    const map = {};
+    professionals.forEach(month => month.forEach(([name, est, rev]) => {
+      map[name] = (map[name] || 0) + rev;
+    }));
+    rows = Object.entries(map).map(([name, rev]) => [name, 0, rev]).sort((a,b) => b[2]-a[2]);
+  }
+
+  const top5 = rows.slice(0, 5);
+  charts['profRev'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top5.map(r => r[0]),
+      datasets: [{
+        data: top5.map(r => r[2]),
+        backgroundColor: PALETTE,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmtARSfull(ctx.raw) } }
+      },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4', callback: v => fmtARS(v) } },
+        x: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+
+// ===================== VIEW TABS =====================
+let currentView = '2026';
+
+document.getElementById('viewTabs').addEventListener('click', e => {
+  const tab = e.target.closest('[data-view]');
+  if (!tab) return;
+  document.querySelectorAll('#viewTabs .tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  currentView = tab.dataset.view;
+
+  const monthArea = document.querySelector('#monthTabs').parentElement;
+  const mainCharts = document.querySelectorAll('.container > .charts-2col, .container > .kpi-row');
+  const yoySection = document.getElementById('yoySection');
+
+  if (currentView === 'yoy') {
+    monthArea.style.display = 'none';
+    mainCharts.forEach(el => el.style.display = 'none');
+    document.getElementById('kpiRow').style.display = 'none';
+    yoySection.style.display = 'flex';
+    yoySection.style.flexDirection = 'column';
+    yoySection.style.gap = '0';
+    renderYoY();
+  } else {
+    monthArea.style.display = '';
+    mainCharts.forEach(el => el.style.display = '');
+    document.getElementById('kpiRow').style.display = '';
+    yoySection.style.display = 'none';
+    if (currentView === '2025') {
+      // TODO: show 2025 full year view (for now switch back to 2026 mode)
+    }
+    renderAll();
+  }
+});
+
+// ===================== YoY RENDER =====================
+function renderYoY() {
+  const MONTHS_JAN_MAY = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo'];
+  const studies2026jm = [365, 474, 558, 602, 412];
+  const rev2026jm = [12890258, 18778333, 22228168, 21420591, 14913831];
+
+  // Vol KPI cards
+  const volKpis = document.getElementById('yoyVolKpis');
+  volKpis.innerHTML = MONTHS_JAN_MAY.map((m, i) => {
+    const pct = ((studies2026jm[i] / studies2025[i] - 1) * 100).toFixed(1);
+    const up = pct >= 0;
+    return `<div class="yoy-kpi">
+      <div class="month-label">${m}</div>
+      <div class="yoy-pct ${up ? 'up':'down'}">${up?'+':''}${pct}%</div>
+      <div class="yoy-sub">${studies2025[i]} → ${studies2026jm[i]} estudios</div>
+    </div>`;
+  }).join('');
+
+  // Rev KPI cards (real)
+  const revKpis = document.getElementById('yoyRevKpis');
+  revKpis.innerHTML = MONTHS_JAN_MAY.map((m, i) => {
+    const pct = ((revReal2026[i] / revReal2025[i] - 1) * 100).toFixed(1);
+    const up = pct >= 0;
+    return `<div class="yoy-kpi">
+      <div class="month-label">${m}</div>
+      <div class="yoy-pct ${up ? 'up':'down'}">${up?'+':''}${pct}%</div>
+      <div class="yoy-sub">2025: ${fmtARS(revReal2025[i])}<br>2026: ${fmtARS(revReal2026[i])}</div>
+    </div>`;
+  }).join('');
+
+  // Chart: Vol 2025 vs 2026
+  destroyChart('yoyVol');
+  charts['yoyVol'] = new Chart(document.getElementById('yoyVolChart'), {
+    type: 'bar',
+    data: {
+      labels: MONTHS_JAN_MAY,
+      datasets: [
+        { label: '2025', data: studies2025.slice(0,5), backgroundColor: 'rgba(79,142,247,0.5)', borderColor: '#4f8ef7', borderWidth: 1, borderRadius: 4 },
+        { label: '2026', data: studies2026jm, backgroundColor: '#4f8ef7', borderRadius: 4 }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#8892a4', font:{size:11} } } },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4' } },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+
+  // Chart: Rev nominal 2025 vs 2026
+  destroyChart('yoyRevNom');
+  charts['yoyRevNom'] = new Chart(document.getElementById('yoyRevNomChart'), {
+    type: 'bar',
+    data: {
+      labels: MONTHS_JAN_MAY,
+      datasets: [
+        { label: '2025', data: revenue2025.slice(0,5), backgroundColor: 'rgba(110,231,183,0.4)', borderColor: '#6ee7b7', borderWidth: 1, borderRadius: 4 },
+        { label: '2026', data: rev2026jm, backgroundColor: '#6ee7b7', borderRadius: 4 }
+      ]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: '#8892a4', font:{size:11} } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtARSfull(ctx.raw) } }
+      },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4', callback: v => fmtARS(v) } },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+
+  // Chart: Rev real (May 26 pesos)
+  destroyChart('yoyRevReal');
+  charts['yoyRevReal'] = new Chart(document.getElementById('yoyRevRealChart'), {
+    type: 'bar',
+    data: {
+      labels: MONTHS_JAN_MAY,
+      datasets: [
+        { label: '2025 (real)', data: revReal2025, backgroundColor: 'rgba(244,114,182,0.4)', borderColor: '#f472b6', borderWidth: 1, borderRadius: 4 },
+        { label: '2026 (real)', data: revReal2026, backgroundColor: '#f472b6', borderRadius: 4 }
+      ]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: '#8892a4', font:{size:11} } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtARSfull(ctx.raw) } }
+      },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4', callback: v => fmtARS(v) } },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+
+  // Chart: 2025 full year
+  destroyChart('year2025');
+  charts['year2025'] = new Chart(document.getElementById('year2025Chart'), {
+    type: 'bar',
+    data: {
+      labels: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+      datasets: [
+        {
+          label: '2025 estudios',
+          data: studies2025,
+          backgroundColor: studies2025.map((_, i) => i < 5 ? 'rgba(79,142,247,0.5)' : 'rgba(79,142,247,0.2)'),
+          borderRadius: 4,
+          yAxisID: 'y'
+        },
+        {
+          label: '2026 (Ene–May)',
+          data: [365, 474, 558, 602, 412, null, null, null, null, null, null, null],
+          backgroundColor: '#4f8ef7',
+          borderRadius: 4,
+          yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#8892a4', font:{size:11} } } },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4' } },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+
+  // Chart: Practices YoY (Jan-May cumulative)
+  destroyChart('yoyPract');
+  const practKeys = ['Consulta Especialista','ECG','Eco Doppler','Ergometría Digital','EMMAC','VOP','Cardioimpedancia','Mapa'];
+  const pract2025sum = practKeys.map(k => (practicesQty2025[k] || [0,0,0,0,0]).slice(0,5).reduce((a,b)=>a+b,0));
+  const pract2026sum = practKeys.map(k => (practicesQty[k] || [0,0,0,0,0]).slice(0,5).reduce((a,b)=>a+b,0));
+
+  charts['yoyPract'] = new Chart(document.getElementById('yoyPractChart'), {
+    type: 'bar',
+    data: {
+      labels: practKeys,
+      datasets: [
+        { label: '2025 (Ene–May)', data: pract2025sum, backgroundColor: 'rgba(251,191,36,0.4)', borderColor: '#fbbf24', borderWidth: 1, borderRadius: 4 },
+        { label: '2026 (Ene–May)', data: pract2026sum, backgroundColor: '#fbbf24', borderRadius: 4 }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { labels: { color: '#8892a4', font:{size:11} } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4' } },
+        y: { grid: { display: false }, ticks: { color: '#e2e8f0', font:{size:11} } }
+      }
+    }
+  });
+
+  // Chart: Rev/study real YoY
+  destroyChart('yoyEff');
+  charts['yoyEff'] = new Chart(document.getElementById('yoyEffChart'), {
+    type: 'line',
+    data: {
+      labels: MONTHS_JAN_MAY,
+      datasets: [
+        { label: '2025 (real)', data: revPerStudyReal2025, borderColor: 'rgba(167,139,250,0.7)', backgroundColor: 'rgba(167,139,250,0.1)', tension: 0.4, fill: true, pointBackgroundColor: 'rgba(167,139,250,0.7)', pointRadius: 5 },
+        { label: '2026 (real)', data: revPerStudyReal2026, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.2)', tension: 0.4, fill: true, pointBackgroundColor: '#a78bfa', pointRadius: 5 }
+      ]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: '#8892a4', font:{size:11} } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtARSfull(ctx.raw) + '/estudio' } }
+      },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892a4', callback: v => fmtARS(v) } },
+        x: { grid: { display: false }, ticks: { color: '#8892a4' } }
+      }
+    }
+  });
+}
+
+// ===================== RENDER ALL =====================
+function renderAll() {
+  renderKPIs();
+  renderVolChart();
+  renderRevChart();
+  renderPractQtyChart();
+  renderPractRevChart();
+  renderProfTable();
+  renderMixChart();
+  renderEffChart();
+  renderProfRevChart();
+}
+
+// ===================== TABS =====================
+document.getElementById('monthTabs').addEventListener('click', e => {
+  const tab = e.target.closest('[data-month]');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  selectedMonth = parseInt(tab.dataset.month);
+  renderAll();
+});
+
+// ===================== INIT =====================
+renderAll();
+</script>
+</body>
+</html>

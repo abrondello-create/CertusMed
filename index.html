@@ -84,9 +84,9 @@
 <header>
   <div>
     <h1>Dashboard Médico · Círculo 2025–2026</h1>
-    <p>Liquidaciones Enero 2025 – Mayo 2026 · Actualizado al 23/06/2026</p>
+    <p>Liquidaciones Enero 2025 – Junio 2026 · Actualizado al 26/06/2026</p>
   </div>
-  <span class="badge">17 meses</span>
+  <span class="badge">18 meses</span>
 </header>
 
 <div class="container">
@@ -110,7 +110,8 @@
       <div class="tab" data-month="2">Febrero</div>
       <div class="tab" data-month="3">Marzo</div>
       <div class="tab" data-month="4">Abril</div>
-      <div class="tab active" data-month="5">Mayo</div>
+      <div class="tab" data-month="5">Mayo</div>
+      <div class="tab active" data-month="6">Junio</div>
     </div>
   </div>
 
@@ -250,76 +251,76 @@ const practicesQty2025 = {
 };
 
 // IPC INDEC mensual (fuente: iProfesional/INDEC)
-// 2025: ene-dic | 2026: ene-may (may=estimado REM)
+// 2025: ene-dic | 2026: ene-jun (jun=estimado)
 const ipc2025 = [2.2, 2.4, 3.7, 2.8, 1.5, 1.6, 1.9, 1.9, 2.1, 2.3, 2.5, 2.8];
-const ipc2026 = [2.9, 2.9, 3.4, 2.5, 2.3];
+const ipc2026 = [2.9, 2.9, 3.4, 2.5, 2.3, 3.0];
 
 // Build cumulative IPC index (base Jan 2025 = 100)
 function buildIpcIndex() {
   const idx = [100];
   for (let i = 0; i < ipc2025.length; i++) idx.push(idx[idx.length-1] * (1 + ipc2025[i]/100));
   for (let i = 0; i < ipc2026.length; i++) idx.push(idx[idx.length-1] * (1 + ipc2026[i]/100));
-  return idx; // [0]=Jan25, [1]=Feb25, ...[12]=Jan26, [13]=Feb26, ...[17]=May26
+  return idx; // [0]=Jan25, [1]=Feb25, ...[12]=Jan26, [13]=Feb26, ...[17]=May26, [18]=Jun26
 }
 const ipcIndex = buildIpcIndex();
-const baseMay26 = ipcIndex[17]; // May 2026
+const baseMay26 = ipcIndex[17]; // May 2026 (base de referencia)
 
 // Deflation factors: to May 2026 pesos
 // 2025 months 0-11 → ipcIndex[0..11], deflate by baseMay26/ipcIndex[i]
-// 2026 months 0-4 → ipcIndex[12..16], deflate by baseMay26/ipcIndex[12+i]
+// 2026 months 0-5 → ipcIndex[12..17], deflate by baseMay26/ipcIndex[12+i]
 const defl2025 = ipcIndex.slice(0, 12).map(idx => baseMay26 / idx);
-const defl2026 = ipcIndex.slice(12, 17).map(idx => baseMay26 / idx);
+const defl2026 = ipcIndex.slice(12, 18).map(idx => baseMay26 / idx);
 
-// Real revenue Jan-May in May 2026 pesos
+// Real revenue Jan-Jun in May 2026 pesos
 const revReal2025 = revenue2025.slice(0, 5).map((r, i) => Math.round(r * defl2025[i]));
-const revReal2026 = [12890258, 18778333, 22228168, 21420591, 14913831].map((r, i) => Math.round(r * defl2026[i]));
+const revReal2026 = [12890258, 18778333, 22228168, 21420591, 14913831, 14891602].map((r, i) => Math.round(r * defl2026[i]));
 
-// Rev per study (real) Jan-May
+// Rev per study (real) Jan-Jun
 const revPerStudyReal2025 = revReal2025.map((r, i) => Math.round(r / studies2025[i]));
-const revPerStudyReal2026 = revReal2026.map((r, i) => Math.round(r / [365, 474, 558, 602, 412][i]));
+const revPerStudyReal2026 = revReal2026.map((r, i) => Math.round(r / [365, 474, 558, 602, 412, 386][i]));
 
 
 // ===================== 2026 DATA =====================
 
-const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo'];
-const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May'];
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'];
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
 
 // Total studies per month
-const totalStudies = [365, 474, 558, 602, 412];
+const totalStudies = [365, 474, 558, 602, 412, 386];
 
 // Total revenue (Mutual + Coseguro) per month
-const totalRevenue = [12890258, 18778333, 22228168, 21420591, 14913831];
+const totalRevenue = [12890258, 18778333, 22228168, 21420591, 14913831, 14891602];
 
 // Revenue per study
 const revPerStudy = totalRevenue.map((r, i) => Math.round(r / totalStudies[i]));
 
-// Practices: quantity by month [ene, feb, mar, abr, may]
+// Practices: quantity by month [ene, feb, mar, abr, may, jun]
 const practicesQty = {
-  'Consulta Especialista': [207, 267, 332, 363, 268],
-  'ECG':                   [43,  41,  50,  57,  33],
-  'Eco Doppler':           [38,  47,  49,  48,  30],
-  'Ergometría Digital':    [20,  32,  44,  49,  28],
-  'EMMAC':                 [7,   28,  22,  15,  0],
-  'VOP':                   [6,   10,  7,   12,  13],
-  'Cardioimpedancia':      [11,  12,  13,  16,  16],
-  'Mapa':                  [8,   6,   13,  13,  12],
-  'Holter':                [7,   6,   10,  8,   0],
-  'Consulta Receta':       [14,  13,  9,   10,  6],
-  'Eco Cuello':            [4,   10,  7,   8,   6],
-  'MAX PULSE':             [0,   0,   2,   3,   0],
+  'Consulta Especialista': [207, 267, 332, 363, 268, 243],
+  'ECG':                   [43,  41,  50,  57,  33,  30],
+  'Eco Doppler':           [38,  47,  49,  48,  30,  39],
+  'Ergometría Digital':    [20,  32,  44,  49,  28,  30],
+  'EMMAC':                 [7,   28,  22,  15,  0,   3],
+  'VOP':                   [6,   10,  7,   12,  13,  10],
+  'Cardioimpedancia':      [11,  12,  13,  16,  16,  9],
+  'Mapa':                  [8,   6,   13,  13,  12,  8],
+  'Holter':                [7,   6,   10,  8,   0,   5],
+  'Consulta Receta':       [14,  13,  9,   10,  6,   2],
+  'Eco Cuello':            [4,   10,  7,   8,   6,   6],
+  'MAX PULSE':             [0,   0,   2,   3,   0,   1],
 };
 
 // Practices: revenue (mutual+coseguro) by month
 const practicesRev = {
-  'Consulta Especialista': [5544748, 7494267, 9814641, 10014413, 7369155],
-  'Eco Doppler':           [2927541, 3902896, 3965974, 3707566, 2157548],
-  'Ergometría Digital':    [1043001, 2066708, 2828363, 3166395, 1823767],
-  'Cardioimpedancia':      [755000,  754136,  866681,  951011,  1043476],
-  'VOP':                   [485000,  528882,  350858,  567769,  984791],
-  'Mapa':                  [448000,  480298,  959099,  823973,  769510],
-  'Holter':                [340000,  581244,  796077,  642601,  0],
-  'ECG':                   [450205,  489385,  561853,  616568,  347461],
-  'EMMAC':                 [315000,  1265000, 1070000, 790000,  0],
+  'Consulta Especialista': [5544748, 7494267, 9814641, 10014413, 7369155, 7101595],
+  'Eco Doppler':           [2927541, 3902896, 3965974, 3707566,  2157548, 3075228],
+  'Ergometría Digital':    [1043001, 2066708, 2828363, 3166395,  1823767, 1912993],
+  'Cardioimpedancia':      [755000,  754136,  866681,  951011,   1043476, 399553],
+  'VOP':                   [485000,  528882,  350858,  567769,   984791,  390160],
+  'Mapa':                  [448000,  480298,  959099,  823973,   769510,  531522],
+  'Holter':                [340000,  581244,  796077,  642601,   0,       362239],
+  'ECG':                   [450205,  489385,  561853,  616568,   347461,  299009],
+  'EMMAC':                 [315000,  1265000, 1070000, 790000,   0,       230000],
 };
 
 // Professionals per month: [name, estudios, total_ingresos]
@@ -364,10 +365,18 @@ const professionals = [
     ['Dra. Ribotta',   28,  1043505],
     ['Dr. Cisterna',   16,  1093311],
   ],
+  // Junio
+  [
+    ['Dr. Miranda',    156, 5139365],
+    ['Dra. Brondello', 82,  1698380],
+    ['Dra. Del Sueldo',34,  876079],
+    ['Dra. Ribotta',   28,  1501093],
+    ['Dr. Senesi',     25,  1598581],
+  ],
 ];
 
 // ===================== STATE =====================
-let selectedMonth = 5; // 1-based, 0 = todos
+let selectedMonth = 6; // 1-based, 0 = todos
 
 // ===================== CHART INSTANCES =====================
 let charts = {};
@@ -996,22 +1005,4 @@ function renderAll() {
   renderPractRevChart();
   renderProfTable();
   renderMixChart();
-  renderEffChart();
-  renderProfRevChart();
-}
-
-// ===================== TABS =====================
-document.getElementById('monthTabs').addEventListener('click', e => {
-  const tab = e.target.closest('[data-month]');
-  if (!tab) return;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
-  selectedMonth = parseInt(tab.dataset.month);
-  renderAll();
-});
-
-// ===================== INIT =====================
-renderAll();
-</script>
-</body>
-</html>
+  ren
